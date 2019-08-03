@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>teacher</title>
+		<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js">
+</script>
+	</head>
+	<body>
+		<h1 align="center" id="h1"></h1>
+		<button onclick="logoff()">退出当前登陆</button>
+		<a href="subject.do">进入题库管理</a>
+		<a href="clazz.do">进入班级管理</a>
+	</body>
+	<script type="text/javascript">
+		$(function(){
+			var teacher=localStorage.getItem("teacher");
+			teacher=JSON.parse(teacher)
+			$("#h1").html("欢迎"+teacher.name+"老师登陆,你拥有以下权限")
+			$("#h1").css("color","red")
+		})
+		function logoff(){
+			$.ajax({
+				type: "get",
+				url: "logoff.do",
+				dataType: "text",
+				data: {
+					teacherId: (JSON.parse(localStorage.getItem("teacher"))).id
+				},
+				success: function(inf) {
+					if(inf == "YES") {
+						alert("退出登陆成功")
+						location.href="login.html"
+					} else {
+						alert("退出登陆失败")
+					}
+				},
+				error: function() {
+					alert("ajax请求失败")
+				}
+			})
+		}
+	</script>
+	<script src="base.js" type="text/javascript" charset="utf-8"></script>
+	<style type="text/css">
+		a {
+			display: block;
+			width: 10rem;
+			height: 10rem;
+			background: pink;
+			text-decoration:none;
+			margin: 0 auto;
+			margin-top: 1rem;
+		}
+	</style>
+</html>

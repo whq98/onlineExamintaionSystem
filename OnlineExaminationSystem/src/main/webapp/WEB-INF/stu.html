@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<script charset="UTF-8" src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js">
+		</script>
+	</head>
+
+	<body>
+		<div id="content">
+			<div id="top">华清远见-stu</div>
+			<div id="middle">
+				<div id="middle1">
+					<input type="text" id="key" />
+					<button onclick="searchStudentByKey()">搜索学生</button>
+					<button id="addStudentBtn">增加学生</button>
+					<button onclick="lookClazzGrade()">查看本班的成绩</button>
+					<button onclick="publishExamination()">发布考试</button>
+				</div>
+				<div id="middle2">
+					<table cellspacing='0' id="StudentTable" class="tables">
+					</table>
+					<div id="addStudent">
+						学号<input type="text" id="no" value=""/><br /> 
+						姓名<input type="text" id="name" value=""/><br /> 
+						性别<input type="text" id="sex" value=""/><br />
+						密码<input type="text" id="pwd" value=""/><br />  
+						班级id<input type="text" id="clazzId" value=""/><br />
+						<a href="javascript: sureAddStudent()">确定</a>
+						<a href="javascript: cancleAddStudent()">取消</a>
+					</div>
+					<div id="updateClazzId" class='hiddenDiv'>
+	        			<div class="model-content">
+	            			<table id='helpTable'>
+	            			</table>
+			            <p>
+			            	<p>请在表格中选好你所要换的班级所匹配的班级ID</p>
+            				<p>并在点击关闭之后,双击同一字段</p>
+            				<p>输入你选好的班级ID进行修改</p>
+			                <button id="closeModel" onclick="helpUpdate()">关闭</button>
+			            </p>
+			        </div>
+			    </div>
+					<div id="detailedGrade" class="hiddenDiv">
+						<table id="stuGradeTable">
+						
+						</table>
+					</div>
+					<div id="lookClazzGrade" class="hiddenDiv">
+						<table id="clazzGradeTable">
+						
+						</table>
+						<p><button onclick="getback()">点我返回上一级</button></p>
+					</div>
+					<div id="publishExamination" class="hiddenDiv">
+						<h1 id="haveExamination"></h1>
+						
+						<div id="endExaminationDiv" clazz="hiddenDiv">
+							<button id="endExaminationBtn" onclick="endExamination();">结束考试</button> 
+						</div>
+						<br />
+						<div id="surePublishExaminationDiv" class="hiddenDiv" >
+							考试名:<input id="examinationName" type="text" placeholder="请输入考试名字"/> <br />
+						考试类型:
+						<input type="radio" name="examination_type" value="1" checked="true"/>正常考试
+						<input type="radio" name="examination_type" value="0"/>补考
+						<input type="radio" name="examination_type" value="-1"/>重修<br />
+						题数:
+						<input type="radio" name="subject_num" value="20" checked="true"/>20道题
+						<input type="radio" name="subject_num" value="25"/>25道题
+						<input type="radio" name="subject_num" value="40"/>40道题<br />
+						类别:
+						<div id="categoryDiv">
+						</div>
+						<button id="surePublishExaminationBtn" onclick="surePublishExamination()">确认发布考试</button>
+						
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script charset="UTF-8">
+		$(function() {
+			getClazzIdAndClazzName();
+			showAllStudent();
+			$("#addStudentBtn").click(function addStudent() {
+				$("#StudentTable").css("display", "none");
+				$("#addStudent").css("display", "block")
+			})
+		})
+		function getback(){
+			$("#lookClazzGrade").css("display","none");
+			$("#StudentTable").css("display", "table");
+		}
+		function lookClazzGrade(){
+			var teacherId=(JSON.parse(localStorage.getItem("teacher"))).id;
+			var clazzId=(JSON.parse(localStorage.getItem("clazz"))).clazzId;
+			$.ajax({
+				type : "get",//请求的方式 ("get")
+				url : "getClazzGrade.do",//请求的url
+				dataType : "text",//接收的数据类型声明
+				data : {
+					teacherId:teacherId,
+					clazzId:clazzId
+				},//发送请求参数
+				success:function(list){
+					list = JSON.parse(list);
+					var GradeInf = "<table id='stuGradeTable'>"
+					 	GradeInf+= "<tr><td>学生名</td><td>考试名</td><td>分数</td><td>考试类型</td></tr>";
+					for(let i = 0; i < list.length; i++) {
+						var Grade = list[i];
+						GradeInf += "<tr>"
+						GradeInf += "<td>" + Grade.stuName + "</td>";
+						GradeInf += "<td>" + Grade.examinationName + "</td>";
+						GradeInf += "<td>" + Grade.score + "</td>";
+						GradeInf += "<td>" + Grade.examinationType + "</td>";
+						GradeInf += "</tr>";
+					}
+						GradeInf+="</table>"
+					$("#lookClazzGrade").css("display","block");
+					$("#StudentTable").css("display", "none");
+					$("#clazzGradeTable").html(GradeInf);
+				},
+				error:function(){
+					alert("查询全班成绩ajax请求失败")
+				}
+		})
+		}
+		function endExamination (){
+			var examinationId=(JSON.parse(localStorage.getItem("examination"))).id;
+			$.ajax({
+				type : "post",//请求的方式 ("get")
+				url : "endExamination.do",//请求的url
+				dataType : "text",//接收的数据类型声明
+				data : {
+					examinationId:examinationId
+				},//发送请求参数
+				success:function(inf){
+					if(inf=="YES"){
+						alert("结束考试成功")
+						publishExamination();
+					}else{
+						alert("结束考试失败")
+					}
+				},
+				error:function(){
+					alert("结束考试ajax请求失败")
+				}
+		})
+		}
+		function surePublishExamination(){
+			var examinationName=$("#examinationName").val();
+			var	examinationType=$("input:radio[name='examination_type']:checked").val();
+			var	subjectNum=$("input:radio[name='subject_num']:checked").val();
+			var categoryids=$("input:checkbox[name='category_name']:checked").map(function(index,elem) {
+	            return $(elem).val();}).get().join(',');
+			var clazzId = (JSON.parse(localStorage.getItem("clazz"))).clazzId;
+			var teacherId=(JSON.parse(localStorage.getItem("teacher"))).id;
+			$.ajax({
+				type : "post",//请求的方式 ("get")
+				url : "publishExaminationByKeys.do",//请求的url
+				dataType : "text",//接收的数据类型声明
+				data : {
+					examinationName:examinationName,
+					examinationType:examinationType,
+					subjectNum:subjectNum,
+					categoryids:categoryids,
+					clazzId:clazzId,
+					teacherId:teacherId
+				},//发送请求参数
+				success:function(inf){
+					if(inf=="YES"){
+						alert("发布成功")
+						publishExamination();
+					}else{
+						alert("发布失败")
+					}
+				},
+				error:function(){
+					alert("发布ajax请求失败")
+				}
+			})
+		}
+		function publishExamination(){
+			$("#StudentTable").css("display", "none");
+			$("#publishExamination").css("display","block");
+			var clazzId=JSON.parse(localStorage.getItem("clazz")).clazzId;
+			$.ajax({
+				type : "get",//请求的方式 ("get")
+				url : "selectExaminationByClazzId.do",//请求的url
+				dataType : "text",//接收的数据类型声明
+				data : {
+					clazzId:clazzId
+				},//发送请求参数
+				success : function(examination) {
+					if(examination!=""){
+						localStorage.setItem("examination",examination)
+						examination = JSON.parse(examination);
+						/* console.log(localStorage.getItem("examination")) */
+						$("#haveExamination").html("正在对\""+examination.name+"\"进行考试，不能发布新考试")
+						$("#haveExamination").css("color","red");
+						$("#endExaminationDiv").css("display","block")
+						$("#surePublishExaminationDiv").css("display","none");
+						/* $("#surePublishExaminationBtn").css("pointer-events","none"); */
+					}else{
+						$("#haveExamination").html("当前没有考试,请发布考试")
+						$("#haveExamination").css("color","green");
+						/* $("#surePublishExaminationBtn").css("pointer-events","true"); */
+						$("#surePublishExaminationDiv").css("display","block");
+						$("#endExaminationDiv").css("display","none")
+						/* $("#endExaminationBtn").css("pointer-events","none"); */
+					}
+				},
+				error:function(){
+					alert("ajax请求examination失败")
+				}
+        	})
+        	$.ajax({
+				type : "get",//请求的方式 ("get")
+				url : "selectCategoryAll.do",//请求的url
+				dataType : "text",//接收的数据类型声明
+				data : {},
+				success:function(list){
+					var categoryListInf="";
+					list=JSON.parse(list);
+					for(let i=0;i<list.length;i++){
+						var category=list[i];
+						categoryListInf+="<input type='checkbox' name='category_name' value="+category.id+">"+category.name+"</br>"
+					}
+					$("#categoryDiv").html(categoryListInf);
+				},
+				error:function(){
+					alert("获取category_ajax失败")
+				}
+        	})
+        	
+		}
+		var SHOW = 0;
+		function helpUpdate() {
+	        if(++SHOW%2==1){
+	        	$("#updateClazzId").css("display","block");
+	        	$.ajax({
+					type : "get",//请求的方式 ("get")
+					url : "selectAllClazz.do",//请求的url
+					dataType : "text",//接收的数据类型声明
+					data : {},//发送请求参数
+					success : function(list) {
+						list = JSON.parse(list);
+						var helpTableInf="";
+						helpTableInf+="<tr><td>班级id</td><td>班级名字</td><td>班级专业</td></tr>"
+						for(let i=0;i<list.length;i++){
+							var clazz=list[i];
+							helpTableInf+="<tr><td>"+clazz.id+"</td>"
+							helpTableInf+="<td>"+clazz.name+"</td>"
+							helpTableInf+="<td>"+clazz.major+"</td></tr>"
+						}
+						$("#helpTable").html(helpTableInf)
+					},
+					error:function(){
+						alert("ajax请求失败")
+					}
+	        	})
+	        }else{
+	        	$("#updateClazzId").css("display","none");
+	        }
+    	}
+		function toGrade(studentId) {
+			var student = {
+				"studentId" : studentId
+			};
+			/*讲js对象转化为JSON字符串,本地存储只能用JSON字符串*/
+			student = JSON.stringify(student);
+			localStorage.setItem("student", student);
+			var teacherId=(JSON.parse(localStorage.getItem("teacher"))).id;
+			var clazzId=(JSON.parse(localStorage.getItem("clazz"))).clazzId;
+			$.ajax({
+				type : "get",
+				url : "getAllGradesByKeys.do",
+				dataType : "text",
+				data : {
+					studentId : studentId,
+					teacherId : teacherId,
+					clazzId : clazzId,
+				},
+				success : function(list) {
+					list = JSON.parse(list);
+					var GradeInf = "<table id='stuGradeTable'>"
+					 	GradeInf+= "<tr><td>学生名</td><td>考试名</td><td>分数</td><td>考试类型</td></tr>";
+					for(let i = 0; i < list.length; i++) {
+						var Grade = list[i];
+						GradeInf += "<tr ondblclick='fakeUpdateByKey(" + Grade.id + ")'>"
+						GradeInf += "<td id='tdsname'>" + Grade.stuName + "</td>";
+						GradeInf += "<td id='tdename'>" + Grade.examinationName + "</td>";
+						GradeInf += "<td id='tdscore'>" + Grade.score + "</td>";
+						GradeInf += "<td id='tdtype'>" + Grade.examinationType + "</td>";
+						GradeInf += "</tr>";
+					}
+						GradeInf+="</table>"
+					$("#StudentTable").css("display", "none");
+					$("#detailedGrade").css("display","block");
+					$("#detailedGrade").html(GradeInf);
+					$("#stuGradeTable").css("display","table");
+					
+				},
+				error : function() {
+					alert("ajax请求失败");
+				}
+			})
+			
+		}
+		function searchStudentByKey() {
+		var key = $("#key").val();
+		$.ajax({
+					type : "get",
+					url : "fuzzyQueryStudent.do",
+					dataType : "text",
+					data : {
+						key : key
+					},
+					success : function(list) {
+						list = JSON.parse(list);
+						var StudentInf = "<tr><td>no</td><td>name</td><td>sex</td><td>pwd</td><td>clazz_id</td><td>删除</td><td>进入</td></tr>";
+						for(let i = 0; i < list.length; i++) {
+							var Student = list[i];
+							/*调试时间console.log(Student)*/
+							StudentInf += "<tr ondblclick='fakeUpdateByKey(" + Student.id + ")'>"
+							StudentInf += "<td id='tdno'>" + Student.no + "</td>";
+							StudentInf += "<td id='tdname'>" + Student.name + "</td>";
+							StudentInf += "<td id='tdsex'>" + Student.sex + "</td>";
+							StudentInf += "<td id='tdpwd'>" + Student.pwd + "</td>";
+							StudentInf += "<td id='tdclazzId'>" + Student.clazzId + "</td>";
+							StudentInf += "<td class='a' onclick='isdeleted(" +
+							Student.id + ");'>删除 <input type='hidden'  id='showflag"+Student.id+"' placeholder='确认:yes,否则:no'  /></td>";
+							StudentInf += "<td class='a'>进入</td>";
+							StudentInf += "</tr>";
+						}
+						$("#StudentTable").html(StudentInf);
+					},
+					error : function() {
+						alert("ajax请求失败")
+					}
+				})
+	}
+		function getClazzIdAndClazzName(){
+			var output=localStorage.getItem("clazz")
+			var json = JSON.parse(output)
+			var clazzName=json.clazzName
+			var clazzId=json.clazzId
+			$("#top").html("班级ID:"+clazzId+"-"+clazzName);
+			return json;
+		}
+		function cancleAddStudent() {
+			$("#StudentTable").css("display", "table");
+			$("#addStudent").css("display", "none")
+		}
+
+		function sureAddStudent() {
+			var name = $("#name").val();
+			var no=$("#no").val();
+			var sex=$("#sex").val();
+			var pwd=$("#pwd").val();
+			var clazzId=$("#clazzId").val();
+			if((sex=="男"||sex=="女") && sex!=""){
+				$.ajax({
+					type: "post",
+					url: "addStudentByKeys.do",
+					dataType: "text",
+					data: {
+						no:no,
+						name: name,
+						sex:sex,
+						pwd:pwd,
+						clazzId:clazzId
+					},
+					success: function(inf) {
+						if(inf == "YES") {
+							alert("添加成功")
+							showAllStudent();
+							$("#StudentTable").css("display", "table");
+							$("#addStudent").css("display", "none")
+						} else {
+							alert("添加失败")
+						}
+					},
+					error: function() {
+						alert("ajax请求失败")
+					}
+				});
+			}else{
+				alert("你的性别为空,或插入格式不正确")
+			}
+		}
+		
+		function showAllStudent() {
+			$.ajax({
+					type: "get", //请求的方式 ("get")
+					url: "selectAllStudent.do", //请求的url
+					dataType: "text", //接收的数据类型声明
+					data: {
+						clazzId:getClazzIdAndClazzName().clazzId
+						/* clazzName:getClazzIdAndClazzName().clazzName */
+					}, //发送请求参数
+					success: function(list) {
+						list = JSON.parse(list);
+						var StudentInf = "<tr><td>no</td><td>name</td><td>sex</td><td>pwd</td><td>删除</td><td>进入</td><td onclick='helpUpdate()'>clazz_id点击帮助</td></tr>";
+						for(let i = 0; i < list.length; i++) {
+							var Student = list[i];
+							/*调试时间console.log(Student)*/
+							StudentInf += "<tr ondblclick='fakeUpdateByKey(" + Student.id + ")'>"
+							StudentInf += "<td id='tdno'>" + Student.no + "</td>";
+							StudentInf += "<td id='tdname'>" + Student.name + "</td>";
+							StudentInf += "<td id='tdsex'>" + Student.sex + "</td>";
+							StudentInf += "<td id='tdpwd'>" + Student.pwd + "</td>";
+							StudentInf += "<td class='a' onclick='isdeleted(" +
+							Student.id + ");'>删除 <input type='hidden'  id='showflag"+Student.id+"' placeholder='确认:yes,否则:no'  /></td>";
+							StudentInf += "<td class='a' onclick='toGrade("
+								+ Student.id + ")' >详细信息</td>";
+							StudentInf += "<td id='tdclazzId'>" + Student.clazzId + "</td>";
+							StudentInf += "</tr>";
+						}
+						$("#StudentTable").html(StudentInf);
+					},
+					error: function() {
+						alert("ajax请求错误")
+					}
+				});
+		}
+		function fakeUpdateByKey(studentId) {
+			/*console.log("第一遍打印学生id")
+			console.log(clazzId)*/
+			$(".tables").on(
+					"dblclick",
+					"td",
+					function() {
+						if ($(this).children("input").length > 0) {
+							return false;
+						}
+						var tdDom = $(this);
+						/*console.log("第二遍打印学生修改的字段")
+						console.log($(this).attr("id"));*/
+						var studentCol = $(this).attr("id");
+						//保存初始值
+						var tdPreText = $(this).text();
+						//给td设置宽度和给input设置宽度并赋值
+						$(this).width(100).html("<input type='text'>")
+								.find("input").width(100).val(tdPreText);
+						//失去焦点的时候重新赋值
+						var inputDom = $(this).find("input");
+						inputDom.blur(function() {
+							var newText = $(this).val();
+							/**修改过为false,未修改为true*/
+							/*console.log("第三遍打印该字段是否修改过")
+							console.log(newText==tdPreText);*/
+							$(this).remove();
+							tdDom.text(newText);
+							if ((newText != tdPreText)	&& (newText!="")) {
+								/**学生编号,学生字段,更新值*/
+								trueUpdateByKeys(studentId, studentCol, newText);
+								alert("fake修改成功");
+							}else{
+								tdDom.text(tdPreText);
+								alert("你可能未作出任何修改,或未输入修改内容")
+								alert("Sorry,系统不会保存此次修改.请重试");
+							}
+						});
+					})
+		}
+		function trueUpdateByKeys(studentId, studentCol, newText) {
+			alert(studentId + studentCol + newText);
+			$.ajax({
+				type : "post",
+				url : "updateStudentByKeys.do",
+				dataType : "text",
+				data : {
+					studentId : studentId,
+					studentCol : studentCol,
+					newText : newText,
+					clazzId:(JSON.parse(localStorage.getItem("clazz"))).clazzId
+				},
+				success : function(inf) {
+					if (inf == "YES") {
+						alert("true修改成功")
+						showAllStudent();
+						$("#StudentTable").css("display", "table");
+						$("#addStudent").css("display", "none");
+					} else {
+						alert("修改失败");
+					}
+				},
+				error : function() {
+					alert("ajax请求失败");
+				}
+			})
+		}
+		function isdeleted(studentId) {
+			$("#showflag"+studentId).attr("type", "text");
+			$("#showflag"+studentId).change(function() {
+				var flag = $(this).val();
+				if(flag == "yes") {
+					 //alert("将要执行的语句") 
+					$("#showflag"+studentId).attr("type", "hiddden");
+					//alert("为防止数据丢失,本页面不可重复删除") 
+					$("#showflag"+studentId).fadeOut(1500);
+					deleteStudentById(studentId);
+				} else {
+					alert("取消删除")
+					$("#showflag"+studentId).fadeOut(1500);
+				}
+			});
+		}
+		function deleteStudentById(studentId){
+			$.ajax({
+				type : "get",
+				url : "deleteStudent.do",
+				dataType : "text",
+				data : {
+					studentId : studentId
+				},
+				success : function(inf) {
+					if (inf == "YES") {
+						showAllStudent();
+						$("#StudentTable").css("display", "table");
+						$("#addStudent").css("display", "none")
+					} else {
+					}
+				},
+				error : function() {
+				}
+			})
+		}
+	</script>
+	<script src="base.js" type="text/javascript" charset="utf-8"></script>
+	<style>
+		#updateClazzId {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            background-color: rgba(9, 9, 9, 0.63);
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+        .model-content {
+            width: 50%;
+            text-align: center;
+            background: #ffffff;
+            border-radius: 6px;
+            margin: 100px auto;
+            line-height: 30px;
+            z-index: 10001;
+        }
+		#showflag{
+			position: relative;
+		}
+		.hiddenDiv {
+			height: 40rem;
+			background: paleturquoise;
+			width: 100%;
+			display: none;
+			font-size: 2rem;
+		}
+		#addStudent {
+			height: 40rem;
+			background: paleturquoise;
+			width: 100%;
+			display: none;
+			font-size: 2rem;
+		}
+		
+		#middle2 {
+			display: flex;
+		}
+		
+		.a:hover {
+			background: palegoldenrod;
+			cursor: pointer
+		}
+		
+		tr:hover {
+			background: #EEEEEE;
+		}
+		
+		tr:first-child {
+			background-color: pink;
+			font-size: 2rem;
+		}
+		
+		th,
+		td {
+			text-align: center;
+			padding-top: 1rem;
+			padding-bottom: 1rem;
+			color: yellow;
+		}
+		
+		table {
+			width: 100%;
+			display: table;
+		}
+		
+		table,
+		th,
+		td {
+			border: 1px solid black;
+		}
+		
+		#middle1>* {
+			margin: 1rem;
+		}
+		
+		#middle1 {
+			width: 80rem;
+			background: green;
+		}
+		
+		#middle {
+			width: 80rem;
+			min-height: 40rem;
+			background: gray;
+		}
+		
+		#top {
+			width: 80rem;
+			height: 10rem;
+			background: palegoldenrod;
+			font-size: 3rem;
+			text-align: center;
+			line-height: 10rem; //文字的行高
+		}
+		
+		#content {
+			width: 80rem;
+			min-height: 50rem;
+			background: pink;
+			margin: 0 auto;
+		}
+	</style>
+
+</html>

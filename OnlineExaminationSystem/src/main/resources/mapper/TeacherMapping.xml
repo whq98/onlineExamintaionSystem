@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fs.mapper.TeacherMapper">
+	<sql id="baseTeacherCols">
+		id,name,no,pwd,sex,state
+	</sql>
+	<select id="selectByNoAndPwd" resultType="teacher">
+		select <include refid="baseTeacherCols"></include> 
+		from teacher where no=#{no} and pwd=#{pwd}
+	</select>
+	<!--根据教师状态,判断是否能进入teacher.xml页面-->
+	<select id="selectState" resultType="teacher">
+		select <include refid="baseTeacherCols"></include>  
+		from teacher where id=#{id} 
+	</select>
+	<update id="updateStateOff">
+		update teacher set state=0 where id=#{id}
+	</update>
+	<update id="updateStateIn">
+		update teacher set state=1 where id=#{id}
+	</update>
+</mapper>

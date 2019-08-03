@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fs.mapper.ExaminationMapper">
+	<sql id="baseExamination">
+		 id,clazz_id,teacher_id,subject_num,state,examination_type,name,category,begin_time 
+	</sql>
+	<select id="selectExaminationByClazzIdAndState" resultType="examination">
+		select <include refid="baseExamination"></include> from examination where clazz_id=#{clazzId} and state=#{state}
+	</select>
+	<insert id="insertExaminationByExamination">
+		insert into examination (clazz_id,teacher_id,subject_num,examination_type,name,category,begin_time) 
+		values(#{clazzId},#{teacherId},#{subjectNum},#{examinationType},#{name},#{category},#{beginTime})
+	</insert>
+	<update id="updateStateByExaminationIdAndState">
+		update examination set state=#{state} where id=#{examinationId}
+	</update>
+</mapper>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js">
+	
+</script>
+</head>
+<body>
+	<div id="content">
+		<div id="top">华清远见-clazz</div>
+		<div id="middle">
+			<div id="middle1">
+				<input type="text" id="key" />
+				<button onclick="searchClazzByKey()">搜索</button>
+				<button id="addClazzBtn">增加</button>
+			</div>
+			<div id="middle2">
+				<table cellspacing='0' id="clazzTable" class="tables">
+				</table>
+				<div id="addClazz">
+					班名<input type="text" id="name" /><br /> 专业<input type="text"
+						id="major" /><br /> <a href="javascript: sureAddClazz()">确定</a>
+					<a href="javascript: cancleAddClass()">取消</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script type="text/javascript">
+	$("document").ready(function() {
+		$("#addClazzBtn").click(function() {
+			$("#name").val("");
+			$("#major").val("");
+			$("#addClazz").css("display", "block");
+			$("#clazzTable").css("display", "none");
+		})
+		showAllClazz();
+	})
+	function fakeUpdateByKey(clazzId) {
+		/*console.log("第一遍打印班级id")
+		console.log(clazzId)*/
+		$(".tables").on(
+				"dblclick",
+				"td",
+				function() {
+					if ($(this).children("input").length > 0) {
+						return false;
+					}
+					var tdDom = $(this);
+					/*console.log("第二遍打印班级修改的字段")
+					console.log($(this).attr("id"));*/
+					var clazzCol = $(this).attr("id");
+					//保存初始值
+					var tdPreText = $(this).text();
+					//给td设置宽度和给input设置宽度并赋值
+					$(this).width(100).html("<input type='text'>")
+							.find("input").width(100).val(tdPreText);
+					//失去焦点的时候重新赋值
+					var inputDom = $(this).find("input");
+					inputDom.blur(function() {
+						var newText = $(this).val();
+						/**修改过为false,未修改为true*/
+						/*console.log("第三遍打印该字段是否修改过")
+						console.log(newText==tdPreText);*/
+						$(this).remove();
+						tdDom.text(newText);
+						if (newText != tdPreText) {
+							/**班级编号,班级字段,更新值*/
+							trueUpdateByKeys(clazzId, clazzCol, newText);
+							alert("修改成功");
+						} else {
+							alert("Sorry,系统不会保存此次修改.请重试");
+						}
+						/*console.log("第四遍打印该字段修改的内容")
+						console.log(newText);*/
+					});
+				})
+	}
+	function trueUpdateByKeys(clazzId, clazzCol, newText) {
+		alert(clazzId + clazzCol + newText);
+		$.ajax({
+			type : "post",
+			url : "updateClazzByKeys.do",
+			dataType : "text",
+			data : {
+				clazzId : clazzId,
+				clazzCol : clazzCol,
+				newText : newText
+			},
+			success : function(inf) {
+				if (inf == "YES") {
+					alert("修改成功")
+					showAllClazz();
+					$("#clazzTable").css("display", "table");
+					$("#addClazz").css("display", "none");
+				} else {
+					alert("修改失败");
+				}
+			},
+			error : function() {
+				alert("ajax请求失败");
+			}
+		})
+	}
+	function searchClazzByKey() {
+		var key = $("#key").val();
+		$.ajax({
+					type : "get",
+					url : "fuzzyQueryClazz.do",
+					dataType : "text",
+					data : {
+						key : key
+					},
+					success : function(list) {
+						list = JSON.parse(list);
+						var clazzInf = "<tr><td>id</td><td>name</td><td>major</td><td>begin_date</td><td>删除</td><td>进入</td></tr>";
+						for (let i = 0; i < list.length; i++) {
+							var clazz = list[i];
+							/*调试时间console.log(clazz)*/
+							clazzInf += "<tr ondblclick='fakeUpdateByKey("
+									+ clazz.id + ")'>"
+							clazzInf += "<td>" + clazz.id + "</td>";
+							clazzInf += "<td id='tdname'>" + clazz.name
+									+ "</td>";
+							clazzInf += "<td id='tdmajor'>" + clazz.major
+									+ "</td>";
+							clazzInf += "<td>" + clazz.beginDate + "</td>";
+							clazzInf += "<td class='a' onclick='deleteClazzById("
+									+ clazz.id + ");'>删除</td>";
+							clazzInf += "<td class='a'>进入</td>";
+							clazzInf += "</tr>";
+							/*调试时间alert(clazz.beginDate);*/
+						}
+						$("#clazzTable").html(clazzInf);
+						/**$("#key").val()="";*/
+					},
+					error : function() {
+						alert("ajax请求失败")
+					}
+				})
+	}
+	function deleteClazzById(clazzId) {
+		$.ajax({
+			type : "get",
+			url : "deleteClazz.do",
+			dataType : "text",
+			data : {
+				id : clazzId
+			},
+			success : function(inf) {
+				if (inf == "YES") {
+					alert("删除成功")
+					showAllClazz();
+					$("#clazzTable").css("display", "table");
+					$("#addClazz").css("display", "none")
+				} else {
+					alert("删除失败")
+				}
+			},
+			error : function() {
+			}
+		})
+	}
+	function cancleAddClass() {
+		$("#clazzTable").css("display", "table");
+		$("#addClazz").css("display", "none")
+	}
+	function sureAddClazz() {
+		var name = $("#name").val();
+		var major = $("#major").val();
+		$.ajax({
+			type : "post",
+			url : "addClazzByNameAndMajor.do",
+			dataType : "text",
+			data : {
+				name : name,
+				major : major
+			},
+			success : function(inf) {
+				if (inf == "YES") {
+					alert("添加成功")
+					showAllClazz();
+					$("#clazzTable").css("display", "table");
+					$("#addClazz").css("display", "none")
+				} else {
+					alert("添加失败")
+				}
+			},
+			error : function() {
+				alert("ajax请求失败")
+			}
+		});
+
+	}
+	function showAllClazz() {
+		$.ajax({
+					type : "get",//请求的方式 ("get")
+					url : "selectAllClazz.do",//请求的url
+					dataType : "text",//接收的数据类型声明
+					data : {},//发送请求参数
+					success : function(list) {
+						list = JSON.parse(list);
+						var clazzInf = "<tr><td>id</td><td>name</td><td>major</td><td>begin_date</td><td>删除</td><td>进入</td></tr>";
+						for (let i = 0; i < list.length; i++) {
+							var clazz = list[i];
+							/*调试时间console.log(clazz)*/
+							clazzInf += "<tr ondblclick='fakeUpdateByKey("
+									+ clazz.id + ")'>"
+							clazzInf += "<td>" + clazz.id + "</td>";
+							clazzInf += "<td id='tdname'>" + clazz.name
+									+ "</td>";
+							clazzInf += "<td id='tdmajor'>" + clazz.major
+									+ "</td>";
+							clazzInf += "<td>" + clazz.beginDate + "</td>";
+							clazzInf += "<td class='a' onclick='deleteClazzById("
+									+ clazz.id + ");'>删除</td>";
+							/* clazzInf += "<td class='a' >进入</td>"; */
+							clazzInf += "<td class='a' onclick='toStudent("
+									+ clazz.id + ",\"" + clazz.name
+									+ "\")' >进入</td>";
+							clazzInf += "</tr>";
+							/*调试时间alert(clazz.beginDate);*/
+						}
+						$("#clazzTable").html(clazzInf);
+					},
+					error : function() {
+						alert("ajax请求错误")
+					}
+				});
+	}
+	function toStudent(clazzId, clazzName) {
+		var clazz = {
+			"clazzId" : clazzId,
+			"clazzName" : clazzName
+		};
+		/*讲js对象转化为JSON字符串,本地存储只能用JSON字符串*/
+		clazz = JSON.stringify(clazz);
+		localStorage.setItem("clazz", clazz);
+		console.log("clazz页面"+localStorage.getItem("clazz"))
+		location.href = "toStudent.do"; 
+	}
+</script>
+<script src="base.js" type="text/javascript" charset="utf-8"></script>
+<style>
+#addClazz {
+	height: 40rem;
+	background: paleturquoise;
+	width: 100%;
+	display: none;
+	font-size: 2rem;
+}
+
+#middle2 {
+	display: flex;
+}
+
+.a:hover {
+	background: palegoldenrod;
+	cursor: pointer
+}
+
+tr:hover {
+	background: #EEEEEE;
+}
+
+tr:first-child {
+	background-color: pink;
+	font-size: 2rem;
+}
+
+th, td {
+	text-align: center;
+	padding-top: 1rem;
+	padding-bottom: 1rem;
+	color: yellow;
+}
+
+table {
+	width: 100%;
+	display: table;
+}
+
+table, th, td {
+	border: 1px solid black;
+}
+
+#middle1>* {
+	margin: 1rem;
+}
+
+#middle1 {
+	width: 80rem;
+	background: green;
+}
+
+#middle {
+	width: 80rem;
+	min-height: 40rem;
+	background: gray;
+}
+
+#top {
+	width: 80rem;
+	height: 10rem;
+	background: palegoldenrod;
+	font-size: 5rem;
+	text-align: center;
+	line-height: 10rem;
+	//
+	文字的行高
+}
+
+#content {
+	width: 80rem;
+	min-height: 50rem;
+	background: pink;
+	margin: 0 auto;
+}
+</style>
+</html>

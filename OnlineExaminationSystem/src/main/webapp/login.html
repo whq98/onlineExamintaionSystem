@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js">
+</script>
+	</head>
+	<body>
+		<form action="login.do" method="post">
+			账号: <input type="text" id="no" name="no" value="001"/> <br />
+			密码: <input type="password" id="pwd" name="pwd" value="123456"/><br />
+			角色: <input type="radio" name="role" value="teacher" />老师
+				 <input type="radio" name="role" value="student" checked="checked"/>学生<br />
+				 <input type="submit" value="普通登陆">
+		</form>
+		<button onclick="login()">ajax登陆</button>
+	</body>
+	<script type="text/javascript">
+		function toTeacherHtmlFake(teacherId){
+			$.ajax({
+				type: "post",
+				url: "toTeacherHtmlFake.do",
+				dataType: "text",
+				data: {
+					teacherId:teacherId
+				},
+				success: function(teacher) {
+					if(teacher != "no") {
+						alert("即将跳转teacher页面");
+						location.href="toTeacherHtmlTrue.do"
+					} else {
+						alert("登陆失败")
+					}
+				},
+				error: function() {
+					alert("ajax请求失败")
+				}
+			})
+		}
+		function login(){
+			var no=$("#no").val();
+			var pwd=$("#pwd").val();
+			var role=$("input[name='role']:checked").val();
+			$.ajax({
+				type: "post",
+				url: "ajaxlogin.do",
+				dataType: "text",
+				data: {
+					no:no,
+					pwd:pwd,
+					role:role
+				},
+				success: function(object) {
+					if(role=="teacher"){
+						if(object != "") {
+							alert("教师登陆成功");
+							localStorage.setItem("teacher",object);
+							var teacherId=(JSON.parse(localStorage.getItem("teacher"))).id;
+							toTeacherHtmlFake(teacherId);
+						} else {
+							alert("教师登陆失败")
+						}
+					}else{
+						if(object != "") {
+							alert("学生登陆成功");
+							localStorage.setItem("student",object);
+							var studentId=(JSON.parse(localStorage.getItem("student"))).id;
+							console.log(studentId);
+						} else {
+							alert("学生登陆失败")
+						}
+					}
+					
+				},
+				error: function() {
+					alert("login ajax请求失败")
+				}
+			})
+		}
+	
+	</script>
+	<script src="base.js" type="text/javascript" charset="utf-8"></script>
+	<style type="text/css">
+		form {
+			display: block;
+			width: 30rem;
+			border: 0.1rem solid red;
+			margin: 0 auto;
+			margin-top: 10rem;
+			font-size: 2rem;
+		}
+	</style>
+</html>
